@@ -16,6 +16,7 @@ fi
 SKIP_FETCH=0
 SKIP_EMBEDDINGS=0
 UPLOAD_TO_GITHUB=0
+DATABASE_CHANGED=0
 DEFAULT_GENERATE_DB_ARGS=()
 GENERATE_DB_ARGS=()
 
@@ -101,13 +102,12 @@ if [[ "$SKIP_FETCH" -eq 0 ]]; then
       echo "==> Metadata fetch failed and assets/db/poc.db does not exist"
       exit "$FETCH_STATUS"
     fi
-  fi
-
-  # Smart Auto-Skip if no updates detected (Optional)
-  if grep -q "created=0 updated=0" build/fetch_log.txt; then
-    echo "==> No new cards or updates detected. Auto-skipping embedding and upload for efficiency."
-    rm -f build/fetch_log.txt
-    exit 0
+  else
+    # Periksa log unduhan untuk mendeteksi penambahan atau perubahan kartu baru
+    if grep -qE "created=[1-9][0-9]*|updated=[1-9][0-9]*" build/fetch_log.txt; then
+      echo "==> New card updates detected in metadata fetch."
+      DATABASE_CHANGED=1
+    fi
   fi
   rm -f build/fetch_log.txt
 else
@@ -123,7 +123,22 @@ fi
 
 if [[ "$SKIP_EMBEDDINGS" -eq 0 ]]; then
   echo "==> Generating TFLite embeddings into assets/db/poc.db"
-  python3 scripts/add_tflite_emb.py
+  set +e
+  python3 scripts/add_tflite_emb.py | tee build/embedding_log.txt
+  EMB_STATUS=${PIPESTATUS[0]}
+  set -e
+
+  if [[ "$EMB_STATUS" -ne 0 ]]; then
+    echo "==> Embedding generation failed"
+    exit "$EMB_STATUS"
+  fi
+
+  # Periksa log embedding untuk melihat apakah ada embedding baru yang berhasil dibuat
+  if grep -qE "Berhasil: [1-9][0-9]*" build/embedding_log.txt; then
+    echo "==> New embeddings successfully generated."
+    DATABASE_CHANGED=1
+  fi
+  rm -f build/embedding_log.txt
 else
   echo "==> Skipping embedding generation"
 fi
@@ -147,7 +162,11 @@ echo "==> Done"
 ls -lh build/offline_db/poc_compact.db
 
 if [[ "$UPLOAD_TO_GITHUB" -eq 1 ]]; then
-  echo "==> Uploading to GitHub Release (latest)..."
-  gh release upload latest build/offline_db/poc_compact.db --repo adtyasatrio/PokeVaultDatabase --clobber
-  echo "==> Upload completed"
+  if [[ "$DATABASE_CHANGED" -eq 1 ]]; then
+    echo "==> Uploading to GitHub Release (latest)..."
+    gh release upload latest build/offline_db/poc_compact.db --repo adtyasatrio/PokeVaultDatabase --clobber
+    echo "==> Upload completed"
+  else
+    echo "==> No card updates or new embeddings detected. Skipping GitHub Release upload."
+  fi
 fi
