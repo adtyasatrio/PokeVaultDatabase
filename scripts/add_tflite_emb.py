@@ -5,7 +5,12 @@ import cv2
 import os
 import colorsys
 import threading
+import time
+import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Suppress deprecation warnings from TensorFlow
+warnings.filterwarnings('ignore', category=UserWarning, module='tensorflow')
 
 try:
     import tensorflow as tf
@@ -16,6 +21,9 @@ except ImportError:
 DB_PATH = 'assets/db/poc.db'
 MODEL_PATH = 'assets/models/efficientnet_b0.tflite'
 MAX_WORKERS = 16  # Memproses 16 kartu secara bersamaan
+
+# Event untuk menghentikan pipeline jika terjadi error jaringan massal
+abort_event = threading.Event()
 
 # Thread-local storage untuk TFLite interpreter
 # Ini penting karena setiap thread butuh interpreter sendiri agar aman (thread-safe)
@@ -162,10 +170,44 @@ def process_card(card_id, image_url):
     Fungsi ini berjalan secara independen di setiap thread.
     Mendownload, augmentasi, inference, dan return hasil.
     """
+    if abort_event.is_set():
+        return card_id, False, "Skipped: Pipeline aborted due to persistent network issues."
+
     try:
-        resp = requests.get(image_url, timeout=15)
-        if resp.status_code != 200:
-            return card_id, False, f"HTTP {resp.status_code}"
+        # Download gambar dengan retry logic (hingga 3 kali retry dengan exponential backoff)
+        max_retries = 3
+        backoff_factor = 2
+        resp = None
+        last_err = None
+        
+        for attempt in range(max_retries):
+            if abort_event.is_set():
+                return card_id, False, "Skipped: Pipeline aborted due to persistent network issues."
+            try:
+                resp = requests.get(image_url, timeout=15)
+                if resp.status_code == 200:
+                    break
+                elif resp.status_code == 429:
+                    # Kena rate limit, tunggu lebih lama
+                    time.sleep(backoff_factor ** attempt + 3)
+                elif resp.status_code in [500, 502, 503, 504]:
+                    # Server error, tunggu sebentar lalu coba lagi
+                    time.sleep(backoff_factor ** attempt)
+                else:
+                    # e.g., 404 Not Found, tidak perlu retry
+                    break
+            except requests.exceptions.RequestException as e:
+                last_err = e
+                # Gangguan koneksi, tunggu sebentar lalu coba lagi
+                time.sleep(backoff_factor ** attempt)
+        
+        if abort_event.is_set():
+            return card_id, False, "Skipped: Pipeline aborted due to persistent network issues."
+
+        if resp is None or resp.status_code != 200:
+            err_msg = f"HTTP {resp.status_code}" if resp is not None else str(last_err)
+            prefix = "NetworkError: " if resp is None or resp.status_code in [500, 502, 503, 504] else ""
+            return card_id, False, f"{prefix}Download failed: {err_msg}"
             
         raw_bytes = resp.content
         aug_bytes_list = augment_image(raw_bytes)
@@ -221,6 +263,20 @@ def main():
         conn.close()
         return
 
+    # Uji koneksi jaringan ke server gambar sebelum memulai
+    print("Checking network connectivity to images.pokemontcg.io...")
+    try:
+        requests.head("https://images.pokemontcg.io", timeout=5)
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        print(f"❌ Error: Network is unreachable or images.pokemontcg.io is down ({e}).")
+        print("Aborting embedding generation to prevent spamming failures.")
+        conn.close()
+        return
+    except requests.exceptions.RequestException:
+        # HTTP errors lain (seperti 403 Forbidden pada HEAD) berarti server masih bisa dijangkau
+        pass
+    print("Network connectivity check passed. Proceeding...")
+
     total = len(rows)
     print(f"🚀 Memulai multi-threaded TFLite embedding generation untuk {total} kartu!")
     print(f"⚙️ Menggunakan {MAX_WORKERS} concurrent workers.")
@@ -228,6 +284,8 @@ def main():
     completed = 0
     success_count = 0
     fail_count = 0
+    consecutive_failures = 0
+    max_consecutive_failures = 15
     
     # Kunci (lock) untuk memastikan proses write ke SQLite aman antar thread
     db_lock = threading.Lock()
@@ -242,6 +300,7 @@ def main():
             
             if success:
                 success_count += 1
+                consecutive_failures = 0  # Reset counter jika sukses
                 with db_lock:
                     cursor.execute("UPDATE cards SET tflite_emb = ? WHERE id = ?", (data, card_id))
                     # Commit per batch (opsional, tapi di sini kita commit per baris agar aman)
@@ -249,6 +308,13 @@ def main():
                 print(f"[{completed}/{total}] ✅ {card_id} -> Success")
             else:
                 fail_count += 1
+                # Deteksi error jaringan beruntun
+                if isinstance(data, str) and data.startswith("NetworkError"):
+                    consecutive_failures += 1
+                    if consecutive_failures >= max_consecutive_failures:
+                        if not abort_event.is_set():
+                            abort_event.set()
+                            print(f"\n⚠️ Too many consecutive network failures ({consecutive_failures}). Aborting execution...")
                 print(f"[{completed}/{total}] ❌ {card_id} -> Failed: {data}")
 
     conn.close()
