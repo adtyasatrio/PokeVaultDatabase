@@ -75,13 +75,21 @@ done
 
 echo "==> Output will be build/offline_db/poc_compact.db"
 
+# Pastikan folder build dibuat terlebih dahulu untuk menyimpan file log
+mkdir -p build
+
 if [[ "$SKIP_FETCH" -eq 0 ]]; then
   echo "==> Fetching card metadata into assets/db/poc.db"
   set +e
   if [[ "${#GENERATE_DB_ARGS[@]}" -gt 0 ]]; then
-    dart run scripts/generate_db.dart "${DEFAULT_GENERATE_DB_ARGS[@]}" "${GENERATE_DB_ARGS[@]}" | tee build/fetch_log.txt
+    dart run scripts/generate_db.dart \
+      ${DEFAULT_GENERATE_DB_ARGS[@]+"${DEFAULT_GENERATE_DB_ARGS[@]}"} \
+      ${GENERATE_DB_ARGS[@]+"${GENERATE_DB_ARGS[@]}"} \
+      | tee build/fetch_log.txt
   else
-    dart run scripts/generate_db.dart "${DEFAULT_GENERATE_DB_ARGS[@]}" | tee build/fetch_log.txt
+    dart run scripts/generate_db.dart \
+      ${DEFAULT_GENERATE_DB_ARGS[@]+"${DEFAULT_GENERATE_DB_ARGS[@]}"} \
+      | tee build/fetch_log.txt
   fi
   FETCH_STATUS=${PIPESTATUS[0]}
   set -e
