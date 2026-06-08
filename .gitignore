@@ -1,0 +1,13 @@
+# Dart
+.dart_tool/
+pubspec.lock
+build/
+
+# Python
+__pycache__/
+*.pyc
+
+# Database and Models (Too big for Git)
+assets/
+build/
+poc_compact.db
