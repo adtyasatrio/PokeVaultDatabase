@@ -134,9 +134,14 @@ python3 scripts/create_compact_offline_db.py \
   --source assets/db/poc.db \
   --output build/offline_db/poc_compact.db
 
-echo "==> Validating compact OTA DB"
-sqlite3 build/offline_db/poc_compact.db \
-  "pragma integrity_check; select count(*), count(tflite_emb_q), avg(length(tflite_emb_q)) from cards;"
+if command -v sqlite3 >/dev/null 2>&1; then
+  echo "==> Validating compact OTA DB"
+  sqlite3 build/offline_db/poc_compact.db \
+    "pragma integrity_check; select count(*), count(tflite_emb_q), avg(length(tflite_emb_q)) from cards;"
+else
+  echo "==> Warning: 'sqlite3' CLI tool not found. Skipping validation check."
+  echo "    To install it on Raspberry Pi: sudo apt update && sudo apt install sqlite3"
+fi
 
 echo "==> Done"
 ls -lh build/offline_db/poc_compact.db
