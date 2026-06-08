@@ -24,12 +24,16 @@ Masuk ke folder repository ini, lalu jalankan perintah berikut:
 # 1. Install library Dart
 dart pub get
 
-# 2. Install library Python
+# 2. Setup dan Install library Python menggunakan Virtual Environment (venv)
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
 # 3. Login ke GitHub CLI (Agar bisa upload release secara otomatis)
 gh auth login
 ```
+
+*(Catatan: Setelah menyetel virtual environment, pastikan Anda mengaktifkannya dengan `source .venv/bin/activate` setiap kali ingin menjalankan script Python secara manual. Script otomatis `generate_compact_ota_db.sh` akan mendeteksi dan menggunakan venv ini secara otomatis).*
 
 ## 🚀 Cara Penggunaan
 

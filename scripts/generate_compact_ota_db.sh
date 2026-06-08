@@ -4,6 +4,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Detect and activate Python virtual environment if it exists
+if [[ -f ".venv/bin/activate" ]]; then
+  echo "==> Activating Python virtual environment (.venv)..."
+  source .venv/bin/activate
+elif [[ -f "venv/bin/activate" ]]; then
+  echo "==> Activating Python virtual environment (venv)..."
+  source venv/bin/activate
+fi
+
 SKIP_FETCH=0
 SKIP_EMBEDDINGS=0
 UPLOAD_TO_GITHUB=0

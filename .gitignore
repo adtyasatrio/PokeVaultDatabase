@@ -6,6 +6,8 @@ build/
 # Python
 __pycache__/
 *.pyc
+.venv/
+venv/
 
 # Database and Models (Too big for Git)
 assets/
