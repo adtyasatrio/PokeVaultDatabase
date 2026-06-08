@@ -9,3 +9,8 @@ dependencies:
   sqflite_common_ffi: ^2.3.0
   image: ^4.1.3
   http: ^1.1.0
+
+hooks:
+  user_defines:
+    sqlite3:
+      source: system
