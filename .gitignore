@@ -13,3 +13,6 @@ venv/
 assets/
 build/
 poc_compact.db
+
+# Environment variables
+.env
