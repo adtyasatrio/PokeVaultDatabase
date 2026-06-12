@@ -16,3 +16,6 @@ poc_compact.db
 
 # Environment variables
 .env
+
+# Logs
+*.log

@@ -58,6 +58,14 @@ python scrape_to_supabase.py --force
 python scrape_to_supabase.py --sets-only
 ```
 
+### Mengisi TCGPlayer Product ID (Opsional)
+Script ini mengikuti *redirect* dari proxy URL `pokemontcg.io` untuk mendapatkan Product ID TCGPlayer yang asli. Jalankan script ini **setelah** Anda men-*scrape* kartu baru:
+
+```bash
+python fill_tcgplayer_product_ids.py
+```
+*(Catatan: Anda juga bisa menggunakan argumen `--set-id <id>` atau `--limit <angka>` untuk testing)*
+
 ## Estimated Time
 
 | Mode | Estimasi |

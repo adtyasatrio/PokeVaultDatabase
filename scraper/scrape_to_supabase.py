@@ -293,22 +293,30 @@ def run(
 
     # 3. Cek set mana yang sudah punya kartu (incremental mode)
     if not force and not target_set_id:
-        resp = sb.get(
-            "/pokemon_cards",
-            params={"select": "set_id", "group": "set_id"},
+        scraped_set_ids = set()
+        offset = 0
+        limit = 1000
+        while True:
+            resp = sb.get("/pokemon_cards", params={
+                "select": "set_id",
+                "limit": str(limit),
+                "offset": str(offset)
+            })
+            if resp.status_code != 200:
+                break
+            data = resp.json()
+            if not data:
+                break
+            scraped_set_ids.update(row["set_id"] for row in data if row.get("set_id"))
+            if len(data) < limit:
+                break
+            offset += limit
+
+        sets_to_scrape = [s for s in all_sets if s["id"] not in scraped_set_ids]
+        log.info(
+            f"Incremental: {len(scraped_set_ids)} sets sudah ada kartunya, "
+            f"{len(sets_to_scrape)} sets perlu di-scrape"
         )
-        # Fallback: query distinct set_ids
-        resp2 = sb.get("/pokemon_cards", params={
-            "select": "set_id",
-            "limit": "10000",
-        })
-        if resp2.status_code == 200:
-            scraped_set_ids = {row["set_id"] for row in resp2.json() if row.get("set_id")}
-            sets_to_scrape = [s for s in all_sets if s["id"] not in scraped_set_ids]
-            log.info(
-                f"Incremental: {len(scraped_set_ids)} sets sudah ada kartunya, "
-                f"{len(sets_to_scrape)} sets perlu di-scrape"
-            )
 
     if not sets_to_scrape:
         log.info("✅ Semua set sudah ada di database. Tidak ada yang perlu di-scrape.")

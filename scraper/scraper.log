@@ -885,3 +885,62 @@
 2026-06-11 14:16:11,797 [INFO] 
 🎉 Selesai! Total kartu di-upsert: 20257
 2026-06-11 14:16:11,797 [INFO]    Jalankan ulang kapan saja — scraper bersifat incremental (idempotent).
+2026-06-12 21:27:28,476 [INFO] Fetching semua Pokemon TCG sets...
+2026-06-12 21:27:30,022 [INFO] HTTP Request: GET https://api.pokemontcg.io/v2/sets?pageSize=250&orderBy=releaseDate&select=id%2Cname%2Cseries%2CprintedTotal%2Ctotal%2CptcgoCode%2CreleaseDate%2Cimages "HTTP/1.1 200 OK"
+2026-06-12 21:27:31,315 [INFO] Ditemukan 173 sets
+2026-06-12 21:27:31,315 [INFO] Upserting 173 sets ke Supabase...
+2026-06-12 21:27:32,671 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_sets "HTTP/1.1 200 OK"
+2026-06-12 21:27:32,672 [INFO] ✅ Sets berhasil di-upsert
+2026-06-12 21:27:32,812 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_sets?select=id "HTTP/1.1 200 OK"
+2026-06-12 21:27:32,813 [INFO] Mode incremental: 173 sets sudah ada di DB
+2026-06-12 21:27:32,955 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&group=set_id "HTTP/1.1 400 Bad Request"
+2026-06-12 21:27:33,091 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=10000 "HTTP/1.1 200 OK"
+2026-06-12 21:27:33,093 [INFO] Incremental: 12 sets sudah ada kartunya, 161 sets perlu di-scrape
+2026-06-12 21:27:37,665 [INFO] HTTP Request: GET https://api.pokemontcg.io/v2/cards?q=set.id%3A%22gym1%22&page=1&pageSize=250&orderBy=number "HTTP/1.1 200 OK"
+2026-06-12 21:27:39,020 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards "HTTP/1.1 200 OK"
+2026-06-12 21:27:39,222 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards "HTTP/1.1 200 OK"
+2026-06-12 21:27:39,407 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards "HTTP/1.1 200 OK"
+2026-06-12 21:27:39,408 [INFO]   ✅ Gym Heroes (gym1): 132 kartu
+2026-06-12 21:28:34,458 [INFO] HTTP Request: GET https://api.pokemontcg.io/v2/cards?q=set.id%3A%22gym2%22&page=1&pageSize=250&orderBy=number "HTTP/1.1 200 OK"
+2026-06-12 21:28:36,058 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards "HTTP/1.1 200 OK"
+2026-06-12 21:28:36,279 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards "HTTP/1.1 200 OK"
+2026-06-12 21:28:36,473 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards "HTTP/1.1 200 OK"
+2026-06-12 21:28:36,475 [INFO]   ✅ Gym Challenge (gym2): 132 kartu
+2026-06-12 21:29:35,254 [INFO] HTTP Request: GET https://api.pokemontcg.io/v2/cards?q=set.id%3A%22neo1%22&page=1&pageSize=250&orderBy=number "HTTP/1.1 200 OK"
+2026-06-12 21:29:36,269 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards "HTTP/1.1 200 OK"
+2026-06-12 21:29:36,528 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards "HTTP/1.1 200 OK"
+2026-06-12 21:29:36,665 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards "HTTP/1.1 200 OK"
+2026-06-12 21:29:36,667 [INFO]   ✅ Neo Genesis (neo1): 111 kartu
+2026-06-12 21:31:00,385 [INFO] Fetching semua Pokemon TCG sets...
+2026-06-12 21:32:00,441 [WARNING] Request error: The read operation timed out — retry 1/5 dalam 1.0s
+2026-06-12 21:32:04,549 [INFO] HTTP Request: GET https://api.pokemontcg.io/v2/sets?pageSize=250&orderBy=releaseDate&select=id%2Cname%2Cseries%2CprintedTotal%2Ctotal%2CptcgoCode%2CreleaseDate%2Cimages "HTTP/1.1 200 OK"
+2026-06-12 21:32:05,123 [INFO] Ditemukan 173 sets
+2026-06-12 21:32:05,124 [INFO] Upserting 173 sets ke Supabase...
+2026-06-12 21:32:05,955 [INFO] HTTP Request: POST https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_sets "HTTP/1.1 200 OK"
+2026-06-12 21:32:05,956 [INFO] ✅ Sets berhasil di-upsert
+2026-06-12 21:32:06,094 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_sets?select=id "HTTP/1.1 200 OK"
+2026-06-12 21:32:06,096 [INFO] Mode incremental: 173 sets sudah ada di DB
+2026-06-12 21:32:06,225 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=0 "HTTP/1.1 200 OK"
+2026-06-12 21:32:06,348 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=1000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:06,475 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=2000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:06,596 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=3000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:06,728 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=4000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:06,862 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=5000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:06,991 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=6000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:07,126 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=7000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:07,256 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=8000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:07,398 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=9000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:07,522 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=10000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:07,653 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=11000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:07,777 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=12000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:07,911 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=13000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:08,039 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=14000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:08,176 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=15000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:08,309 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=16000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:08,441 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=17000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:08,572 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=18000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:08,703 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=19000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:08,830 [INFO] HTTP Request: GET https://vpfjmgefygjhabuizdsq.supabase.co/rest/v1/pokemon_cards?select=set_id&limit=1000&offset=20000 "HTTP/1.1 200 OK"
+2026-06-12 21:32:08,832 [INFO] Incremental: 173 sets sudah ada kartunya, 0 sets perlu di-scrape
+2026-06-12 21:32:08,832 [INFO] ✅ Semua set sudah ada di database. Tidak ada yang perlu di-scrape.
+2026-06-12 21:32:08,832 [INFO]    Gunakan --force untuk re-scrape ulang semua set.
