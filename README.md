@@ -60,6 +60,33 @@ Untuk menggunakannya sebagai otomatisasi mingguan, jalankan dengan *flag* `--upl
 ./scripts/generate_compact_ota_db.sh --upload
 ```
 
+### 3. Upload ke Supabase Storage
+
+Versi GitHub Release tetap ada dan tidak diubah. Jika ingin mengunggah hasil `poc_compact.db` ke Supabase Storage, gunakan script Supabase:
+
+```bash
+SUPABASE_URL=https://vpfjmgefygjhabuizdsq.supabase.co \
+SUPABASE_SERVICE_KEY=<service_role_key> \
+./scripts/generate_compact_ota_db_supabase.sh --bucket offline-db --object-path poc_compact.db
+```
+
+Script ini akan:
+1. Menjalankan pipeline compact DB yang sama tanpa flag `--upload` GitHub.
+2. Mengunggah `build/offline_db/poc_compact.db` ke bucket Supabase.
+3. Menimpa object lama secara default (`upsert`).
+
+Jika environment sudah ada di `scraper/.env`, script akan membacanya otomatis. Untuk membuat bucket jika belum ada:
+
+```bash
+./scripts/generate_compact_ota_db_supabase.sh --create-bucket --public-bucket
+```
+
+URL public file-nya akan berbentuk:
+
+```text
+https://<project-ref>.supabase.co/storage/v1/object/public/offline-db/poc_compact.db
+```
+
 #### Contoh Setelan Cron Job di Raspberry Pi:
 Untuk menjalankan otomatis setiap hari Minggu jam 03:00 pagi:
 ```bash
