@@ -104,3 +104,19 @@ Tambahkan baris berikut di bagian paling bawah:
 3. **`add_tflite_emb.py`**: Membedah gambar kartu baru untuk mengekstrak vektor matematika, dan menyimpannya ke kolom `tflite_emb` berformat *Float32*.
 4. **`create_compact_offline_db.py`**: Membuang kolom yang tidak perlu, mengubah vektor dari *Float32* menjadi *Uint8* (*Quantization*), lalu mencetaknya ke dalam file `poc_compact.db` yang super ringan.
 5. **GitHub CLI (`gh`)**: Mengunggah `poc_compact.db` ke repositori Anda di bawah rilis ber-tag `latest`.
+
+## 📈 Sinkronisasi Harga TCGPlayer Massal
+
+Untuk mengambil harga ter-update dari **seluruh kartu Pokemon** di database utama Anda (sekitar ~26.000+ kartu) menggunakan TCGPlayer Infinite API, Anda bisa menjalankan script sinkronisasi harga.
+
+Script ini sudah dilengkapi sistem keamanan (*rate limiting*) dan sistem *checkpoint* otomatis (menggunakan patokan kolom `scraped_at`), sehingga Anda dapat menghentikan dan melanjutkannya kapan saja tanpa mengulang dari awal. Harga yang di-update **hanya** pada tabel master `pokemon_cards` dan tidak menimpa *cost basis* pada koleksi pribadi milik user.
+
+Untuk menjalankannya secara lokal:
+
+```bash
+# Buka terminal dan load environment variable (dibutuhkan SUPABASE_URL & SUPABASE_SERVICE_KEY)
+set -a; source scraper/.env; set +a
+
+# Jalankan script
+python3 scraper/sync_all_prices.py
+```
