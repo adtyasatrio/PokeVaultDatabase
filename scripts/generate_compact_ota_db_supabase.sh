@@ -129,9 +129,9 @@ else
 fi
 
 UPLOAD_ARGS=(
-  "--source" "$SOURCE_PATH"
+  "--source" "${SOURCE_PATH}.gz"
   "--bucket" "$BUCKET"
-  "--object-path" "$OBJECT_PATH"
+  "--object-path" "${OBJECT_PATH}.gz"
   "--cache-control" "$CACHE_CONTROL"
 )
 if [[ "$UPSERT" -eq 0 ]]; then
@@ -148,6 +148,9 @@ if [[ "${#ENV_FILES[@]}" -gt 0 ]]; then
     UPLOAD_ARGS+=("--env-file" "$env_file")
   done
 fi
+
+echo "==> Compressing compact DB..."
+gzip -kf "$SOURCE_PATH"
 
 echo "==> Uploading compact DB to Supabase Storage"
 python3 scripts/upload_compact_db_to_supabase.py "${UPLOAD_ARGS[@]}"

@@ -83,12 +83,12 @@ if [[ "$SKIP_FETCH" -eq 0 ]]; then
   echo "==> Fetching card metadata into assets/db/poc.db"
   set +e
   if [[ "${#GENERATE_DB_ARGS[@]}" -gt 0 ]]; then
-    dart run scripts/generate_db.dart \
+    python3 scripts/generate_db_supabase.py \
       ${DEFAULT_GENERATE_DB_ARGS[@]+"${DEFAULT_GENERATE_DB_ARGS[@]}"} \
       ${GENERATE_DB_ARGS[@]+"${GENERATE_DB_ARGS[@]}"} \
       | tee build/fetch_log.txt
   else
-    dart run scripts/generate_db.dart \
+    python3 scripts/generate_db_supabase.py \
       ${DEFAULT_GENERATE_DB_ARGS[@]+"${DEFAULT_GENERATE_DB_ARGS[@]}"} \
       | tee build/fetch_log.txt
   fi

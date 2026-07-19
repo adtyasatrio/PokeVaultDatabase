@@ -19,3 +19,10 @@ poc_compact.db
 
 # Logs
 *.log
+
+# CMS
+.cms/
+cms/
+
+# Node
+node_modules/

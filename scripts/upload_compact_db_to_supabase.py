@@ -87,31 +87,73 @@ def upload_file(
     upsert: bool,
 ) -> None:
     import requests
+    import base64
 
     if not source.exists():
         raise FileNotFoundError(f"source file not found: {source}")
 
     content_type = mimetypes.guess_type(source.name)[0] or "application/octet-stream"
-    upload_url = (
-        f"{supabase_url}/storage/v1/object/{quote(bucket)}/"
-        f"{encoded_object_path(object_path)}"
+    size = source.stat().st_size
+
+    # TUS metadata: comma-separated, NO space after comma, value is base64
+    def b64(s: str) -> str:
+        return base64.b64encode(s.encode()).decode()
+
+    metadata_str = (
+        f"bucketName {b64(bucket)},"
+        f"objectName {b64(object_path)},"
+        f"contentType {b64(content_type)},"
+        f"cacheControl {b64(cache_control)}"
     )
-    headers = {
+
+    # 1. Start Resumable Upload (TUS)
+    init_url = f"{supabase_url}/storage/v1/upload/resumable"
+    init_headers = {
         **storage_headers(api_key),
-        "Content-Type": content_type,
-        "Cache-Control": cache_control,
+        "Tus-Resumable": "1.0.0",
+        "Upload-Length": str(size),
+        "Upload-Metadata": metadata_str,
         "x-upsert": "true" if upsert else "false",
     }
 
+    print(f"Starting resumable upload (TUS) [{size / 1024 / 1024:.1f} MB]...")
+    response = requests.post(init_url, headers=init_headers, timeout=30)
+    if response.status_code != 201:
+        raise RuntimeError(f"failed to initialize upload: {response.status_code} {response.text}")
+
+    location = response.headers.get("Location")
+    if not location:
+        raise RuntimeError("failed to initialize upload: Location header missing")
+
+    # Handle relative or absolute location URL
+    upload_url = location if location.startswith("http") else f"{supabase_url}{location}"
+
+    # 2. Upload in 6 MB chunks (well under the 50 MB proxy limit)
+    chunk_size = 6 * 1024 * 1024
+    offset = 0
     with source.open("rb") as file:
-        response = requests.post(upload_url, headers=headers, data=file, timeout=300)
+        while offset < size:
+            file.seek(offset)
+            chunk = file.read(chunk_size)
 
-    if response.status_code not in (200, 201):
-        raise RuntimeError(
-            f"upload failed: {response.status_code} {response.text}"
-        )
+            patch_headers = {
+                **storage_headers(api_key),
+                "Tus-Resumable": "1.0.0",
+                "Upload-Offset": str(offset),
+                "Content-Type": "application/offset+octet-stream",
+            }
 
-    size = source.stat().st_size
+            pct = (offset + len(chunk)) / size * 100
+            print(f"  [{pct:.0f}%] offset {offset} -> {offset + len(chunk)}")
+            r_patch = requests.patch(upload_url, headers=patch_headers, data=chunk, timeout=300)
+            if r_patch.status_code != 204:
+                raise RuntimeError(
+                    f"failed to upload chunk at offset {offset}: "
+                    f"{r_patch.status_code} {r_patch.text}"
+                )
+
+            offset = int(r_patch.headers.get("Upload-Offset", offset + len(chunk)))
+
     public_url = (
         f"{supabase_url}/storage/v1/object/public/{quote(bucket)}/"
         f"{encoded_object_path(object_path)}"

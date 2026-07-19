@@ -18,6 +18,9 @@ SOURCE_COLUMNS = (
     "updated_at",
     "rarity",
     "types",
+    "attacks",
+    "language",
+    "english_name",
     "tflite_emb",
 )
 
@@ -51,6 +54,9 @@ def create_schema(db: sqlite3.Connection) -> None:
           updated_at TEXT,
           rarity TEXT,
           types TEXT,
+          attacks TEXT,
+          language TEXT,
+          english_name TEXT,
           tflite_emb_q BLOB
         );
 
@@ -74,8 +80,8 @@ def compact(source_path: str, output_path: str, batch_size: int) -> None:
     insert_sql = """
         INSERT INTO cards (
           id, name, set_name, card_number, hp, set_id, set_code,
-          image_url, updated_at, rarity, types, tflite_emb_q
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          image_url, updated_at, rarity, types, attacks, language, english_name, tflite_emb_q
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
     total = 0
