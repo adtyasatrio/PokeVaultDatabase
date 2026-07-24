@@ -19,6 +19,9 @@ poc_compact.db
 
 # Logs
 *.log
+.b2-image-migration-failures.jsonl
+.b2-set-image-migration-failures.jsonl
+.b2-pokedex-image-migration-failures.jsonl
 
 # CMS
 .cms/

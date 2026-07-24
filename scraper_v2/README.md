@@ -66,11 +66,62 @@ Agar aplikasi pendeteksi kartu Anda bisa mengenali kartu-kartu baru yang baru sa
 
 ## 📖 Script Tambahan
 
+- **Migrasi gambar TCGCollector ke Backblaze B2:**
+  Pastikan variabel `B2_BUCKET`, `B2_S3_ENDPOINT`, `B2_KEY_ID`, dan
+  `B2_APPLICATION_KEY` tersedia di `.env`. Jalankan preflight terlebih dahulu;
+  perintah ini tidak mengunggah apa pun:
+  ```bash
+  ./scraper_v2/.venv/bin/python scraper_v2/migrate_tcgcollector_images_to_b2.py
+  ```
+  Jika preflight lolos batas free tier dan buffer 250 MB, mulai atau lanjutkan
+  migrasi dengan:
+  ```bash
+  ./scraper_v2/.venv/bin/python scraper_v2/migrate_tcgcollector_images_to_b2.py --execute
+  ```
+  Untuk langsung upload tanpa HEAD preflight kedua kali, gunakan mode direct.
+  Mode ini tetap menghentikan upload sebelum melewati batas 9,75 GB:
+  ```bash
+  ./scraper_v2/.venv/bin/python scraper_v2/migrate_tcgcollector_images_to_b2.py --direct
+  ```
+  Script aman dijalankan ulang. Objek yang sudah ada akan ditautkan kembali,
+  sedangkan database menjadi checkpoint lewat kolom `image_small_b2_path` dan
+  `image_large_b2_path`.
+
+- **Migrasi logo dan simbol set ke Backblaze B2:**
+  Script ini mengambil `logo_url` dan `symbol_url` TCGCollector, lalu menyimpan
+  aset ke prefix `set-logos/` dan `set-symbols/`. Dry-run tidak mengunduh atau
+  mengunggah aset:
+  ```bash
+  ./scraper_v2/.venv/bin/python scraper_v2/migrate_set_images_to_b2.py
+  ```
+  Mulai atau lanjutkan migrasi dengan:
+  ```bash
+  ./scraper_v2/.venv/bin/python scraper_v2/migrate_set_images_to_b2.py --execute
+  ```
+  Script menggunakan 8 worker secara default, berhenti sebelum batas aman
+  9,75 GB, dan memperbarui `logo_b2_path`/`symbol_b2_path` hanya setelah objek
+  berhasil diunggah. Format PNG, WebP, JPEG, GIF, dan SVG didukung. URL sumber
+  lama tidak diubah.
+
 - **Scrape Pokedex Master:**
   Jika Anda membutuhkan daftar lengkap spesies Pokemon (Pokedex), jalankan:
   ```bash
   node scraper_v2/scrape_tcgcollector_pokedex.js
   ```
+
+- **Migrasi gambar Pokedex ke Backblaze B2:**
+  Satu gambar canonical disimpan untuk setiap nomor National Pokedex di prefix
+  `pokedex/`. Path yang sama ditulis ke `pokemon_pokedex_core` dan semua bahasa
+  di `pokemon_pokedex`. Dry-run:
+  ```bash
+  ./scraper_v2/.venv/bin/python scraper_v2/migrate_pokedex_images_to_b2.py
+  ```
+  Mulai atau lanjutkan upload:
+  ```bash
+  ./scraper_v2/.venv/bin/python scraper_v2/migrate_pokedex_images_to_b2.py --execute
+  ```
+  Script menggunakan 8 worker, dapat memperbaiki objek B2 yang hilang, dan
+  tetap mengikuti batas aman penyimpanan 9,75 GB.
 
 - **Re-install AI Virtual Environment (.venv):**
   Jika Anda memindahkan proyek ini ke Mac/PC lain dan script AI tidak bisa berjalan karena *dependencies* hilang, Anda bisa menginstal ulangnya dengan mudah:
