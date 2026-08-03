@@ -49,7 +49,22 @@ Untuk memperbarui kolom `market_price` di database agar sesuai dengan harga *liv
 ```bash
 # Sinkronkan harga untuk semua kartu berbahasa Inggris di database
 node scraper_v2/sync_tcgcollector_prices.js --en
+
+# Kartu Jepang
+node scraper_v2/sync_tcgcollector_prices.js --jp
 ```
+
+Secara default, kartu yang sudah diperbarui dalam 24 jam terakhir dilewati.
+Gunakan `--force` untuk mengambil ulang semuanya. Sebelum menjalankan sinkronisasi
+penuh, tes koneksi API tanpa menulis ke database:
+
+```bash
+node scraper_v2/sync_tcgcollector_prices.js --jp --dry-run --limit 10 --force
+```
+
+Jangan menjalankan beberapa bahasa secara bersamaan. Kecepatan request dapat
+diatur melalui `TCG_PRICE_CONCURRENCY` dan `TCG_PRICE_INTERVAL_MS`, tetapi nilai
+default sengaja dibuat konservatif agar tidak memicu pemblokiran TCGPlayer.
 
 ### Step 3: Generate & Upload Katalog AI (Scanner)
 Agar aplikasi pendeteksi kartu Anda bisa mengenali kartu-kartu baru yang baru saja di-*scrape*, katalog AI harus diperbarui.

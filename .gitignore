@@ -29,3 +29,6 @@ cms/
 
 # Node
 node_modules/
+
+# Generated PriceCharting scrape data and backups
+scraper_v2/data/pricecharting-pokemon-all-*/
