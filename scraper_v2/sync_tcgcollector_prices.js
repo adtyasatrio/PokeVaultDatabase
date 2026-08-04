@@ -407,7 +407,6 @@ async function run() {
   const drySuffix = DRY_RUN ? '_dry_run' : '';
   const logPath = path.join(__dirname, '..', `sync_price_failed_${mode}${drySuffix}_${timestamp}.log`);
   fs.writeFileSync(logPath, 'product_id\thttp_status\treason\tdetail\n', 'utf8');
-  console.log(`Failure log: ${logPath}`);
 
   let processed = 0;
   let fetched = 0;
