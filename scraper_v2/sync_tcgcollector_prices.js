@@ -159,19 +159,10 @@ function formatTcgPrices(results) {
 
     // Find market price from ~30 days ago
     let market30d = market;
-    if (buckets.length > 30) {
-      const latestDate = new Date(latest.bucketStartDate).getTime();
-      const targetDate = latestDate - 30 * 24 * 60 * 60 * 1000;
-      let closestBucket = buckets[0];
-      let minDiff = Infinity;
-      for (const b of buckets) {
-        const diff = Math.abs(new Date(b.bucketStartDate).getTime() - targetDate);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestBucket = b;
-        }
-      }
-      market30d = parseFloat(closestBucket.marketPrice || 0);
+    if (buckets.length > 1) {
+      // Since the API range=month returns up to 30 days of data, 
+      // the first bucket is the oldest (closest to 30 days ago).
+      market30d = parseFloat(buckets[0].marketPrice || 0);
     }
 
     if (market > 0) {
