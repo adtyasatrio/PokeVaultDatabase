@@ -18,6 +18,36 @@ if (!SUPABASE_KEY || !SUPABASE_URL) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+async function sendTelegramMessage(message) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!token || !chatId) {
+    console.warn('Telegram not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env');
+    return;
+  }
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'HTML',
+        disable_web_page_preview: false,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('Telegram API error:', err);
+    }
+  } catch (error) {
+    console.error('Failed to send Telegram message:', error);
+  }
+}
+
 function positiveInteger(value, fallback) {
   const parsed = Number.parseInt(value, 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
@@ -439,15 +469,28 @@ async function run() {
   }
 
   console.log(`\nSync completed. Price found: ${fetched}, ${DRY_RUN ? 'Would update' : 'Updated'}: ${updated}, Failed: ${failed + updateFailed}`);
-  console.log(`Failure log: ${logPath}`);
+  
+  const resultMsg = `<b>PokeVault TCG Scraper</b>\n` +
+    `Language: ${mode}\n` +
+    `Status: ${DRY_RUN ? 'DRY RUN ' : ''}Completed\n\n` +
+    `✅ Price found: ${fetched}\n` +
+    `💾 ${DRY_RUN ? 'Would update' : 'Updated'}: ${updated}\n` +
+    `❌ Failed: ${failed + updateFailed}\n` +
+    (failed + updateFailed > 0 ? `\nFailure log saved to server.` : '');
+  
+  await sendTelegramMessage(resultMsg);
 }
 
-run().catch(error => {
+run().catch(async (error) => {
+  let errorMsg = `<b>PokeVault TCG Scraper ERROR</b>\n`;
   if (error instanceof ApiBlockedError) {
     console.error(`\nSTOPPED: ${error.message}`);
     console.error('Wait before retrying, lower the request rate, and do not run multiple language jobs simultaneously.');
+    errorMsg += `⛔️ API Blocked: ${error.message}`;
   } else {
     console.error('\nFatal error:', error);
+    errorMsg += `⚠️ Fatal error: ${error.message}`;
   }
+  await sendTelegramMessage(errorMsg);
   process.exit(1);
 });
