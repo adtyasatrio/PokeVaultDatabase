@@ -154,6 +154,7 @@ function formatTcgPrices(results) {
     const latest = buckets[buckets.length - 1];
     const market = parseFloat(latest.marketPrice || 0);
     const low = parseFloat(latest.lowSalePrice || 0);
+    const high = parseFloat(latest.highSalePrice || 0);
     const typeId = normalizeCondition(v);
     if (!typeId) continue;
 
@@ -171,6 +172,7 @@ function formatTcgPrices(results) {
           market,
           market30d,
           low: low > 0 ? low : null,
+          high: high > 0 ? high : null,
           _condPriority: condPriority
         };
       }
