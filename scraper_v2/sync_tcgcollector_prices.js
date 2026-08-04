@@ -157,10 +157,28 @@ function formatTcgPrices(results) {
     const typeId = normalizeCondition(v);
     if (!typeId) continue;
 
+    // Find market price from ~30 days ago
+    let market30d = market;
+    if (buckets.length > 30) {
+      const latestDate = new Date(latest.bucketStartDate).getTime();
+      const targetDate = latestDate - 30 * 24 * 60 * 60 * 1000;
+      let closestBucket = buckets[0];
+      let minDiff = Infinity;
+      for (const b of buckets) {
+        const diff = Math.abs(new Date(b.bucketStartDate).getTime() - targetDate);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestBucket = b;
+        }
+      }
+      market30d = parseFloat(closestBucket.marketPrice || 0);
+    }
+
     if (market > 0) {
       if (!pricesMap[typeId] || condPriority < pricesMap[typeId]._condPriority) {
         pricesMap[typeId] = {
           market,
+          market30d,
           low: low > 0 ? low : null,
           _condPriority: condPriority
         };
@@ -174,16 +192,40 @@ function formatTcgPrices(results) {
   return Object.keys(pricesMap).length > 0 ? pricesMap : null;
 }
 
-function getBestMarketPrice(pricesMap) {
+function getBestMarketData(pricesMap) {
   if (!pricesMap) return null;
   const priority = ['holofoil', 'normal', 'reverseholofoil', '1steditionholofoil', '1steditionnormal', 'foil'];
+  let bestVariant = null;
+
   for (const p of priority) {
-    if (pricesMap[p] && pricesMap[p].market > 0) return pricesMap[p].market;
+    if (pricesMap[p] && pricesMap[p].market > 0) {
+      bestVariant = pricesMap[p];
+      break;
+    }
   }
-  for (const key of Object.keys(pricesMap)) {
-    if (pricesMap[key].market > 0) return pricesMap[key].market;
+  
+  if (!bestVariant) {
+    for (const key of Object.keys(pricesMap)) {
+      if (pricesMap[key].market > 0) {
+        bestVariant = pricesMap[key];
+        break;
+      }
+    }
   }
-  return null;
+
+  if (!bestVariant) return null;
+
+  let trend_30d_pct = 0;
+  if (bestVariant.market30d > 0) {
+    trend_30d_pct = ((bestVariant.market - bestVariant.market30d) / bestVariant.market30d) * 100;
+  } else if (bestVariant.market30d === 0 && bestVariant.market > 0) {
+    trend_30d_pct = 0; // Avoid infinity for newly listed prices
+  }
+
+  return {
+    market_price: bestVariant.market,
+    trend_30d_pct: parseFloat(trend_30d_pct.toFixed(2))
+  };
 }
 
 async function fetchProductDetails(productId) {
@@ -283,7 +325,9 @@ async function processProduct(productId) {
     };
   }
 
-  const market_price = getBestMarketPrice(tcgplayer_prices);
+  const bestData = getBestMarketData(tcgplayer_prices);
+  const market_price = bestData ? bestData.market_price : null;
+  const trend_30d_pct = bestData ? bestData.trend_30d_pct : null;
 
   return {
     productId,
@@ -292,6 +336,7 @@ async function processProduct(productId) {
     productName: null,
     data: {
       market_price,
+      trend_30d_pct,
       tcgplayer_prices,
       scraped_at: new Date().toISOString()
     }
