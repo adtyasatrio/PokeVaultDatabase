@@ -318,7 +318,19 @@ async function fetchProductIds() {
     if (LANG_FILTER) query = query.eq('language', LANG_FILTER);
     if (lastId) query = query.gt('id', lastId);
 
-    const { data, error } = await query;
+    let data, error;
+    for (let dbAttempt = 0; dbAttempt < 3; dbAttempt++) {
+      const res = await query;
+      data = res.data;
+      error = res.error;
+      if (!error) break;
+      if (error.message.includes('timeout')) {
+        console.warn(`\nSupabase read timeout, retrying (${dbAttempt + 1}/3)...`);
+        await delay(2000);
+      } else {
+        break;
+      }
+    }
     if (error) throw new Error(`Supabase read failed: ${error.message}`);
     if (!data || data.length === 0) break;
 
