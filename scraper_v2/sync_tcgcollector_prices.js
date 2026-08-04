@@ -435,7 +435,11 @@ async function run() {
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const drySuffix = DRY_RUN ? '_dry_run' : '';
-  const logPath = path.join(__dirname, '..', `sync_price_failed_${mode}${drySuffix}_${timestamp}.log`);
+  const logDir = path.join(__dirname, '..', 'logs');
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
+  const logPath = path.join(logDir, `sync_price_failed_${mode}${drySuffix}_${timestamp}.log`);
   fs.writeFileSync(logPath, 'product_id\thttp_status\treason\tdetail\n', 'utf8');
 
   let processed = 0;
