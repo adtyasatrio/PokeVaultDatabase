@@ -502,8 +502,8 @@ async function run() {
     updateFailed += dbResult.updateFailed;
     processed += batch.length;
 
-    process.stdout.write(
-      `\rProcessed: ${processed}/${productIds.length} | Price found: ${fetched} | ` +
+    console.log(
+      `Processed: ${processed}/${productIds.length} | Price found: ${fetched} | ` +
       `${DRY_RUN ? 'Would update' : 'Updated'}: ${updated} | Failed: ${failed + updateFailed}`
     );
   }
