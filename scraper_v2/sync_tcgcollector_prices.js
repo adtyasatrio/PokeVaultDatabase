@@ -3,11 +3,9 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env'), quiet: true
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 
-// TCGPlayer's old Infinite price-history endpoint now returns HTTP 403. This
-// endpoint is the one currently used by the TCGPlayer product page and exposes
-// the current product-level market price without requiring the blocked history
-// request.
-const PRODUCT_DETAILS_BASE = 'https://mp-search-api.tcgplayer.com/v1/product';
+// Using TCGPlayer's Infinite price-history endpoint to get detailed prices.
+// It requires reasonable rate limits to avoid blocks.
+const PRODUCT_HISTORY_API = 'https://infinite-api.tcgplayer.com/price/history';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -84,8 +82,82 @@ function retryDelay(attempt) {
   return exponential + jitter;
 }
 
+function normalizeCondition(value) {
+  if (!value) return null;
+  const normalized = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!normalized) return null;
+  
+  if (normalized.includes('reverse') && normalized.includes('holo')) return 'reverseholofoil';
+  if (normalized.includes('1stedition') && normalized.includes('holo')) return '1steditionholofoil';
+  if (normalized.includes('1stedition')) return '1steditionnormal';
+  if (normalized.includes('holo') || normalized === 'foil') return 'holofoil';
+  if (normalized.includes('normal') || normalized.includes('nonholo') || normalized.includes('unlimited')) return 'normal';
+  
+  return normalized;
+}
+
+const CONDITION_PRIORITY = {
+  'near mint': 1, 'nm': 1, 'unplayed': 1,
+  'lightly played': 2, 'lp': 2,
+  'moderately played': 3, 'mp': 3,
+  'heavily played': 4, 'hp': 4,
+  'damaged': 5,
+};
+
+function getConditionPriority(condition) {
+  const c = (condition || '').toLowerCase().trim();
+  for (const [key, val] of Object.entries(CONDITION_PRIORITY)) {
+    if (c.includes(key)) return val;
+  }
+  return 99; // unknown
+}
+
+function formatTcgPrices(results) {
+  const pricesMap = {};
+  for (const r of results) {
+    const v = r.variant || '';
+    const condPriority = getConditionPriority(r.condition);
+    const buckets = r.buckets || [];
+    buckets.sort((a, b) => new Date(a.bucketStartDate) - new Date(b.bucketStartDate));
+    if (buckets.length === 0) continue;
+
+    const latest = buckets[buckets.length - 1];
+    const market = parseFloat(latest.marketPrice || 0);
+    const low = parseFloat(latest.lowSalePrice || 0);
+    const typeId = normalizeCondition(v);
+    if (!typeId) continue;
+
+    if (market > 0) {
+      if (!pricesMap[typeId] || condPriority < pricesMap[typeId]._condPriority) {
+        pricesMap[typeId] = {
+          market,
+          low: low > 0 ? low : null,
+          _condPriority: condPriority
+        };
+      }
+    }
+  }
+
+  for (const key of Object.keys(pricesMap)) {
+    delete pricesMap[key]._condPriority;
+  }
+  return Object.keys(pricesMap).length > 0 ? pricesMap : null;
+}
+
+function getBestMarketPrice(pricesMap) {
+  if (!pricesMap) return null;
+  const priority = ['holofoil', 'normal', 'reverseholofoil', '1steditionholofoil', '1steditionnormal', 'foil'];
+  for (const p of priority) {
+    if (pricesMap[p] && pricesMap[p].market > 0) return pricesMap[p].market;
+  }
+  for (const key of Object.keys(pricesMap)) {
+    if (pricesMap[key].market > 0) return pricesMap[key].market;
+  }
+  return null;
+}
+
 async function fetchProductDetails(productId) {
-  const url = `${PRODUCT_DETAILS_BASE}/${encodeURIComponent(productId)}/details`;
+  const url = `${PRODUCT_HISTORY_API}/${encodeURIComponent(productId)}/detailed?range=month`;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     await throttleRequest();
@@ -95,7 +167,9 @@ async function fetchProductDetails(productId) {
       response = await fetch(url, {
         headers: {
           Accept: 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; PokeVaultPriceSync/3.0)'
+          'User-Agent': 'Mozilla/5.0 (compatible; PokeVaultPriceSync/3.0)',
+          Referer: 'https://infinite.tcgplayer.com/',
+          Origin: 'https://infinite.tcgplayer.com'
         },
         signal: AbortSignal.timeout(20000)
       });
@@ -155,24 +229,40 @@ async function processProduct(productId) {
   const response = await fetchProductDetails(productId);
   if (!response.success) return { productId, ...response };
 
-  const marketPrice = Number(response.data?.marketPrice);
-  if (!Number.isFinite(marketPrice) || marketPrice <= 0) {
+  const jsonData = response.data;
+  if (!jsonData || !jsonData.result) {
+    return { 
+      productId, 
+      success: false, 
+      status: response.status,
+      reason: 'no_data',
+      detail: 'API returned no result array'
+    };
+  }
+
+  const allVariants = jsonData.result.map(r => `${r.variant}|${r.condition}`).join(', ');
+  const tcgplayer_prices = formatTcgPrices(jsonData.result);
+
+  if (!tcgplayer_prices) {
     return {
       productId,
       success: false,
       status: response.status,
-      reason: 'no_market_price',
-      detail: response.data?.productName || null
+      reason: 'no_valid_price',
+      detail: allVariants
     };
   }
+
+  const market_price = getBestMarketPrice(tcgplayer_prices);
 
   return {
     productId,
     success: true,
     status: response.status,
-    productName: response.data?.productName || null,
+    productName: null,
     data: {
-      market_price: marketPrice,
+      market_price,
+      tcgplayer_prices,
       scraped_at: new Date().toISOString()
     }
   };
