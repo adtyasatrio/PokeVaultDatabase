@@ -92,16 +92,15 @@ def _query_single_row(
 
 
 def _download_image(url: str) -> Image.Image:
-    req = urllib.request.Request(
+    from curl_cffi import requests
+    resp = requests.get(
         url,
-        headers={
-            "Accept": "image/*",
-            "User-Agent": "CollectorVision/1.0",
-        },
+        impersonate="chrome",
+        timeout=60,
+        headers={"Accept": "image/*"},
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        data = resp.read()
-    return Image.open(io.BytesIO(data)).convert("RGB")
+    resp.raise_for_status()
+    return Image.open(io.BytesIO(resp.content)).convert("RGB")
 
 
 def _download_row_image(

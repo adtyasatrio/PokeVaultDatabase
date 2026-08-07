@@ -75,4 +75,13 @@ else
 fi
 
 echo ""
-echo "🎉 PROSES SELESAI! Katalog baru telah berhasil di-generate, dikonversi, dan diupload."
+echo "🎉 PROSES SELESAI! Katalog baru telah berhasil di-generate, dikonversi, dan diupload ke Supabase."
+
+# 4. UPLOAD KE B2
+echo ""
+echo "[4/4] Upload ke Backblaze B2 (offline-db/collector_vision_catalog.zip)..."
+cd "$DIR"
+"$PYTHON_EXEC" upload_catalog_to_b2.py "catalog/assets/catalog/$FILE_PATH" "offline-db/$FILE_PATH"
+
+echo ""
+echo "🎉 SEMUA PROSES SELESAI! Katalog baru tersedia di Supabase dan B2."
