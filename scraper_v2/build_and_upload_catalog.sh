@@ -48,7 +48,7 @@ cd "$DIR/catalog/assets/catalog"
 cp "$DIR/convert_to_cvg1.py" .
 
 # Gunakan python lokal untuk konversi
-python3 convert_to_cvg1.py
+"$PYTHON_EXEC" convert_to_cvg1.py
 
 echo "Membuat zip file..."
 zip -j collector_vision_catalog.zip tcgplayer_pokemon_catalog.bin cvg1_id_map.json
