@@ -161,9 +161,17 @@ function formatTcgPrices(results) {
     // Find market price from ~30 days ago
     let market30d = market;
     if (buckets.length > 1) {
-      // Since the API range=month returns up to 30 days of data, 
-      // the first bucket is the oldest (closest to 30 days ago).
-      market30d = parseFloat(buckets[0].marketPrice || 0);
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      let closestBucket = buckets[0];
+      let smallestDiff = Math.abs(new Date(closestBucket.bucketStartDate).getTime() - thirtyDaysAgo);
+      for (const bucket of buckets) {
+        const diff = Math.abs(new Date(bucket.bucketStartDate).getTime() - thirtyDaysAgo);
+        if (diff < smallestDiff) {
+          smallestDiff = diff;
+          closestBucket = bucket;
+        }
+      }
+      market30d = parseFloat(closestBucket.marketPrice || market);
     }
 
     if (market > 0) {
@@ -221,8 +229,8 @@ function getBestMarketData(pricesMap) {
   };
 }
 
-async function fetchProductDetails(productId) {
-  const url = `${PRODUCT_HISTORY_API}/${encodeURIComponent(productId)}/detailed?range=month`;
+async function fetchProductDetails(productId, range = 'month') {
+  const url = `${PRODUCT_HISTORY_API}/${encodeURIComponent(productId)}/detailed?range=${range}`;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     await throttleRequest();
@@ -271,7 +279,7 @@ async function fetchProductDetails(productId) {
     const retryable = response.status === 403 || response.status === 429 || response.status >= 500;
     if (retryable && attempt + 1 < MAX_RETRIES) {
       const waitMs = retryDelay(attempt);
-      console.warn(`\nHTTP ${response.status} for ${productId}; retrying in ${waitMs}ms (${attempt + 1}/${MAX_RETRIES})...`);
+      console.warn(`\nHTTP ${response.status} for ${productId} (${range}); retrying in ${waitMs}ms (${attempt + 1}/${MAX_RETRIES})...`);
       await delay(waitMs);
       continue;
     }
@@ -291,17 +299,31 @@ async function fetchProductDetails(productId) {
 }
 
 async function processProduct(productId) {
-  const response = await fetchProductDetails(productId);
-  if (!response.success) return { productId, ...response };
+  let response = await fetchProductDetails(productId, 'month');
+  if (!response.success && response.reason !== 'network_error') {
+    return { productId, ...response };
+  }
 
-  const jsonData = response.data;
-  if (!jsonData || !jsonData.result) {
+  let jsonData = response.data;
+  let hasValidResult = jsonData && Array.isArray(jsonData.result) && jsonData.result.length > 0;
+
+  // Fallback to annual range for rare/vintage cards with no monthly sales
+  if (!hasValidResult) {
+    const annualResponse = await fetchProductDetails(productId, 'annual');
+    if (annualResponse.success) {
+      response = annualResponse;
+      jsonData = annualResponse.data;
+      hasValidResult = jsonData && Array.isArray(jsonData.result) && jsonData.result.length > 0;
+    }
+  }
+
+  if (!hasValidResult) {
     return { 
       productId, 
       success: false, 
       status: response.status,
       reason: 'no_data',
-      detail: 'API returned no result array'
+      detail: 'API returned no result array (checked month and annual)'
     };
   }
 

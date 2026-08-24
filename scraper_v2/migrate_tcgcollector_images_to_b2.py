@@ -357,14 +357,16 @@ def retry(operation, attempts: int = 4):
 
 def measure_task(task: ImageTask, timeout: int) -> ImageTask:
     def operation() -> int:
-        request = urllib.request.Request(
+        from curl_cffi import requests
+        response = requests.head(
             task.source_url,
-            method="HEAD",
             headers={"Accept": "image/*", "User-Agent": "PokeVaultImageMigrator/1.0"},
+            timeout=timeout,
+            impersonate="chrome110"
         )
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            content_type = response.headers.get_content_type()
-            size = int(response.headers.get("Content-Length") or 0)
+        response.raise_for_status()
+        content_type = response.headers.get("Content-Type", "")
+        size = int(response.headers.get("Content-Length") or 0)
         if not content_type.startswith("image/"):
             raise ValueError(f"unexpected content type: {content_type}")
         if size <= 0:
@@ -400,13 +402,16 @@ def update_card_path(config: ConfigValues, task: ImageTask) -> None:
 
 def download_image(task: ImageTask, timeout: int) -> tuple[bytes, str]:
     def operation() -> tuple[bytes, str]:
-        request = urllib.request.Request(
+        from curl_cffi import requests
+        response = requests.get(
             task.source_url,
             headers={"Accept": "image/*", "User-Agent": "PokeVaultImageMigrator/1.0"},
+            timeout=timeout,
+            impersonate="chrome110"
         )
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            content_type = response.headers.get_content_type()
-            data = response.read()
+        response.raise_for_status()
+        content_type = response.headers.get("Content-Type", "")
+        data = response.content
         if not content_type.startswith("image/"):
             raise ValueError(f"unexpected content type: {content_type}")
         if task.expected_size > 0 and len(data) != task.expected_size:
